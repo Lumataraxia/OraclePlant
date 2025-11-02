@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IoT Harmony Dashboard</title>
+</head>
+<body>
+  <h1>IoT Harmony Plant Dashboard</h1>
+  <div id="status"></div>
+  <audio id="plantAudio" controls></audio>
+
+<script>
+let lastAudioVersion = 0;
+let isPlaying = false;
+
+async function fetchStatus() {
+  try {
+    const res = await fetch('/status');
+    const data = await res.json();
+
+    document.getElementById('status').innerText =
+      `Temperature: ${data.temperature}, Humidity: ${data.humidity}, Light: ${data.light}, Moisture: ${data.moisture}, Mood: ${data.mood}`;
+
+    const audio = document.getElementById('plantAudio');
+
+    // Only update if new audio exists and nothing is playing
+    if (data.audioVersion !== lastAudioVersion && !isPlaying) {
+      audio.src = `/plant_mood.mp3?t=${new Date().getTime()}`;
+      audio.play().catch(err => console.log('Audio play error:', err));
+      lastAudioVersion = data.audioVersion;
+      isPlaying = true;
+
+      audio.onended = () => {
+        isPlaying = false;
+        setTimeout(fetchStatus, 1000); // fetch after audio ends
+      };
+    } else {
+      setTimeout(fetchStatus, 5000); // poll normally if no new audio
+    }
+  } catch (err) {
+    console.error('Failed to fetch status:', err);
+    setTimeout(fetchStatus, 5000);
+  }
+}
+
+// Start fetching
+fetchStatus();
+</script>
+</body>
+</html>
